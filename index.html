@@ -457,8 +457,8 @@ function buildReport(sun){
   });
   t+=`\nThis week: ${st.n} of 28 readings recorded, ${st.high} above goal${st.low?`, ${st.low} low`:""}.\n\nThank you,\n${name}\n`;
 
-  const th=s=>`<th style="border:1px solid #999;padding:4px 6px;background:#f0f0f0;text-align:left">${s}</th>`;
-  const td=(s,hl)=>`<td style="border:1px solid #999;padding:4px 6px;${hl?"color:#B42318;font-weight:bold;":""}">${s}</td>`;
+  const th=s=>`<th style="border:1px solid #999;padding:4px 6px;background-color:#e8e8e8;color:#000000;font-weight:bold;text-align:left">${s}</th>`;
+  const td=(s,hl)=>`<td style="border:1px solid #999;padding:4px 6px;background-color:#ffffff;${hl?"color:#B42318;font-weight:bold;":"color:#000000;"}">${s}</td>`;
   let cols=["Date","Before breakfast glucose","1 hour post breakfast glucose"];
   if(anyMedDose)cols.push("Breakfast medication dose");
   cols.push("1 hour post lunch glucose"); if(anyMedDose)cols.push("Lunch medication dose");
