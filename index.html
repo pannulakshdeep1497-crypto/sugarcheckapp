@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Blood sugar log</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sugar log">
+<meta name="theme-color" content="#5B2A86">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F5F7; --surface:#FFFFFF; --ink:#18222E; --muted:#5B6775; --line:#D9E0E6;
+  --accent:#5B2A86; --accent-ink:#FFFFFF; --accent-soft:#EFE7F7;
+  --ok:#1F7446; --ok-bg:#E3F3E9; --high:#B42318; --high-bg:#FDECEA; --low:#8A5200; --low-bg:#FFF1D6;
+  --radius-lg:18px; --radius-sm:10px;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10151B; --surface:#18202A; --ink:#E8EEF3; --muted:#9AA7B4; --line:#2A3542;
+    --accent:#C3A6EC; --accent-ink:#1A0D28; --accent-soft:#2A2238;
+    --ok:#74D29B; --ok-bg:#16301F; --high:#FF8F85; --high-bg:#3A1A18; --low:#F2C064; --low-bg:#3A2C10;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10151B; --surface:#18202A; --ink:#E8EEF3; --muted:#9AA7B4; --line:#2A3542;
+  --accent:#C3A6EC; --accent-ink:#1A0D28; --accent-soft:#2A2238;
+  --ok:#74D29B; --ok-bg:#16301F; --high:#FF8F85; --high-bg:#3A1A18; --low:#F2C064; --low-bg:#3A2C10;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:1rem;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+.wrap{max-width:720px;margin:0 auto;padding:0 1rem 3rem}
+header.top{max-width:720px;margin:0 auto;padding:1.25rem 1rem .5rem;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
+header h1{margin:0;font-size:1.5rem;line-height:1.2;letter-spacing:-.01em}
+header p{margin:.15rem 0 0;color:var(--muted);font-size:.9rem}
+.status{font-size:.8rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:.2rem .65rem;white-space:nowrap;margin-top:.2rem}
+.status.cloud{color:var(--ok);border-color:currentColor}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+nav.tabs .in{max-width:720px;margin:0 auto;padding:0 .5rem;display:flex;gap:.25rem;overflow-x:auto}
+nav.tabs button{background:none;border:0;padding:.8rem .75rem .7rem;color:var(--muted);font-weight:700;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.datebar{display:flex;align-items:center;gap:.5rem;margin:1rem 0 .75rem;flex-wrap:wrap}
+.datebar h2{margin:0;font-size:1.15rem;flex:1;min-width:10rem}
+.icon{width:2.5rem;height:2.5rem;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:1.25rem;line-height:1}
+.icon:disabled{opacity:.35;cursor:default}
+input[type=date],input[type=time],input[type=text],textarea{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:.55rem .7rem;min-height:2.6rem;width:100%}
+.datebar input[type=date]{width:auto}
+.linkbtn{background:none;border:0;color:var(--accent);font-weight:700;cursor:pointer;padding:.25rem 0;text-decoration:underline;text-underline-offset:3px}
+
+.slots{display:grid;gap:.75rem;grid-template-columns:1fr}
+@media (min-width:640px){.slots{grid-template-columns:1fr 1fr}}
+.slot{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:1rem 1rem .9rem;display:flex;flex-direction:column;gap:.6rem}
+.slot-head{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem}
+.slot-head h3{margin:0;font-size:1.05rem}
+.badge{font-size:.8rem;font-weight:700;padding:.15rem .55rem;border-radius:999px;white-space:nowrap}
+.badge:empty{display:none}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}
+.badge.high{background:var(--high-bg);color:var(--high)}
+.badge.low,.badge.check{background:var(--low-bg);color:var(--low)}
+.reading-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.reading{display:flex;align-items:baseline;gap:.4rem}
+.reading input{width:6.2rem;font-size:2.4rem;font-weight:700;font-variant-numeric:tabular-nums;border:0;border-bottom:2px solid var(--line);background:transparent;padding:0 .1rem;line-height:1.1;border-radius:0}
+.reading input:focus{border-bottom-color:var(--accent);outline:none}
+.reading .unit{color:var(--muted);font-size:.85rem}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin-left:auto}
+.seg button{background:transparent;border:0;padding:.4rem .8rem;cursor:pointer;font-size:.85rem;font-weight:700;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.gauge{position:relative;height:8px;border-radius:4px;background:linear-gradient(to right,var(--ok-bg) var(--t,50%),var(--high-bg) var(--t,50%))}
+.gauge .tgt{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--muted);left:var(--t,50%)}
+.gauge .dot{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:var(--ink);border:3px solid var(--surface);transform:translate(-50%,-50%);left:var(--v,0%);display:none}
+.gauge.has .dot{display:block}
+.meta{margin:0;color:var(--muted);font-size:.85rem}
+.timer{border-top:1px dashed var(--line);padding-top:.6rem;display:flex;flex-direction:column;gap:.35rem}
+.timer .msg{margin:0;font-weight:700}
+.timer .msg.now{color:var(--accent)}
+.timer .row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.timer input[type=time]{width:auto;min-height:2.2rem;padding:.25rem .5rem}
+.btn{border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:700;padding:.6rem 1.1rem;cursor:pointer;min-height:2.6rem}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.small{padding:.35rem .8rem;min-height:2.1rem;font-size:.9rem}
+.btn:disabled{opacity:.45;cursor:default}
+
+details.extra{margin-top:.9rem;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:.9rem 1rem}
+details.extra summary{cursor:pointer;font-weight:700}
+.fields{display:grid;gap:.75rem;margin-top:.8rem;grid-template-columns:1fr 1fr}
+.fields .full{grid-column:1/-1}
+label.f{display:flex;flex-direction:column;gap:.25rem;font-size:.9rem;color:var(--muted)}
+label.f span{font-weight:700;color:var(--ink)}
+textarea{min-height:4.5rem;resize:vertical}
+
+.week-nav{display:flex;align-items:center;gap:.5rem;margin:1rem 0 .5rem}
+.week-nav h2{margin:0;font-size:1.15rem;flex:1;text-align:center}
+.summary{margin:.25rem 0 1rem;color:var(--muted)}
+.summary b{color:var(--ink)}
+.grid{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden}
+.grow{display:grid;grid-template-columns:minmax(5.2rem,1.3fr) repeat(4,minmax(3.2rem,1fr));align-items:center;border-top:1px solid var(--line);gap:.25rem;padding:.55rem .75rem;cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left}
+.grow.head{border-top:0;cursor:default;font-size:.78rem;color:var(--muted);font-weight:700;padding-top:.7rem}
+.grow:not(.head):hover{background:var(--accent-soft)}
+.grow .d{font-weight:700;font-size:.92rem;line-height:1.2}
+.grow .d small{display:block;font-weight:400;color:var(--muted);font-size:.78rem}
+.chip{font-variant-numeric:tabular-nums;font-weight:700;border-radius:8px;padding:.2rem .35rem;text-align:center;font-size:.95rem}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.high{background:var(--high-bg);color:var(--high)}
+.chip.low,.chip.check{background:var(--low-bg);color:var(--low)}
+.chip.none{color:var(--muted);font-weight:400}
+.chip sup{font-size:.62rem;font-weight:700;margin-left:1px}
+.legend{font-size:.82rem;color:var(--muted);margin:.6rem .1rem}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:1rem;margin-bottom:.9rem}
+.panel h3{margin:0 0 .4rem;font-size:1.05rem}
+.kv{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.45rem 0;border-top:1px solid var(--line)}
+.kv:first-of-type{border-top:0}
+.kv .k{color:var(--muted);font-size:.85rem;min-width:4.5rem}
+.kv .v{flex:1;font-weight:700;overflow-wrap:anywhere}
+.actions{display:flex;flex-wrap:wrap;gap:.6rem;margin:.9rem 0}
+.notice{background:var(--low-bg);color:var(--ink);border-radius:var(--radius-sm);padding:.75rem .9rem;margin:0 0 .9rem}
+.preview{border:1px solid var(--line);border-radius:var(--radius-sm);padding:.9rem;font-size:.92rem;overflow-x:auto}
+.preview p{margin:0 0 .6rem}
+.preview table{border-collapse:collapse;font-size:.85rem;min-width:560px}
+.preview th,.preview td{border:1px solid var(--line);padding:.3rem .45rem;text-align:left;vertical-align:top}
+.preview th{background:var(--bg)}
+.steps{margin:.25rem 0 0;padding-left:1.2rem;color:var(--muted)}
+.steps li{margin:.2rem 0}
+.foot{color:var(--muted);font-size:.82rem;margin-top:1.5rem}
+#toast{position:fixed;left:50%;bottom:calc(1.25rem + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(150%);background:var(--ink);color:var(--bg);padding:.65rem 1.1rem;border-radius:999px;font-weight:700;transition:transform .25s ease;z-index:20;max-width:90vw;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+@media (max-width:420px){.fields{grid-template-columns:1fr}.reading input{font-size:2.1rem;width:5.4rem}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Blood sugar log</h1>
+    <p id="who">Gestational diabetes readings for the Endocrine Pregnancy Clinic</p>
+  </div>
+  <span id="status" class="status">This device</span>
+</header>
+<nav class="tabs"><div class="in" role="tablist">
+  <button role="tab" data-tab="today">Today</button>
+  <button role="tab" data-tab="week">Week</button>
+  <button role="tab" data-tab="report">Sunday email</button>
+  <button role="tab" data-tab="details">Her details</button>
+</div></nav>
+<main class="wrap" id="view"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+const CLINIC_EMAIL = "PregSugars@sjhc.london.on.ca";
+const KEY = "gdlog.v1";
+const SLOTS = [
+  {key:"fast", label:"Before breakfast", col:"Fasting", meal:false},
+  {key:"bf",   label:"After breakfast",  col:"Breakfast", meal:"breakfast", carbs:"30 g"},
+  {key:"lu",   label:"After lunch",      col:"Lunch", meal:"lunch", carbs:"45 g"},
+  {key:"su",   label:"After supper",     col:"Supper", meal:"supper", carbs:"45 g"}
+];
+const MEDS = [["mB","Breakfast"],["mL","Lunch"],["mS","Supper"],["mBed","Bedtime"]];
+
+const state = {profile:{}, days:{}};
+const ui = {tab:"today", date:todayStr(), weekEnd:null};
+ui.weekEnd = sundayOf(ui.date);
+
+/* ---------- dates ---------- */
+function pad(n){return String(n).padStart(2,"0")}
+function toStr(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function fromStr(s){const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)}
+function todayStr(){return toStr(new Date())}
+function addDays(s,n){const d=fromStr(s);d.setDate(d.getDate()+n);return toStr(d)}
+function sundayOf(s){const d=fromStr(s);return addDays(s,(7-d.getDay())%7)}
+function weekDates(sun){const a=[];for(let i=6;i>=0;i--)a.push(addDays(sun,-i));return a}
+function fmt(s,o){return fromStr(s).toLocaleDateString("en-CA",o)}
+function fmtShort(s){return fmt(s,{weekday:"short",month:"short",day:"numeric"})}
+function fmtLong(s){return fmt(s,{weekday:"long",month:"long",day:"numeric"})}
+function fmtFull(s){return fmt(s,{weekday:"long",month:"long",day:"numeric",year:"numeric"})}
+function fmtDob(s){return s?fmt(s,{year:"numeric",month:"long",day:"numeric"}):""}
+function hm(ms){const d=new Date(ms);return d.toLocaleTimeString("en-CA",{hour:"numeric",minute:"2-digit"})}
+
+/* ---------- helpers ---------- */
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function $(s,r){return (r||document).querySelector(s)}
+function blankDay(){return {fast:{v:null},bf:{v:null,k:"1h",start:null},lu:{v:null,k:"1h",start:null},su:{v:null,k:"1h",start:null},mB:"",mL:"",mS:"",mBed:"",notes:"",u:0}}
+function getDay(date){return state.days[date]||null}
+function ensureDay(date){if(!state.days[date])state.days[date]=blankDay();return state.days[date]}
+function targetFor(key,k){return key==="fast"?5.2:(k==="2h"?6.6:7.7)}
+function targetText(key,k){return key==="fast"?"Goal 5.2 or lower":(k==="2h"?"Goal 6.6 or lower at 2 hours":"Goal 7.7 or lower at 1 hour")}
+function evalReading(key,r){
+  if(!r||r.v==null||isNaN(r.v))return null;
+  const v=r.v;
+  if(v<1.5||v>30)return {cls:"check",label:"Check this number"};
+  if(v<4)return {cls:"low",label:"Low"};
+  if(v>targetFor(key,r.k))return {cls:"high",label:"Above goal"};
+  return {cls:"ok",label:"On target"};
+}
+function parseNum(s){s=String(s||"").trim().replace(",",".");if(!s)return null;const n=parseFloat(s);return isNaN(n)?null:Math.round(n*10)/10}
+function fmtV(v){return v==null?"":(Math.round(v*10)/10).toFixed(1)}
+function dayHasData(d){return !!d&&(SLOTS.some(s=>d[s.key]&&d[s.key].v!=null)||MEDS.some(([k])=>d[k])||d.notes)}
+
+/* ---------- storage: this phone always, Google Sheet when connected ---------- */
+const CFG_KEY="gdlog.sheet", PEND_KEY="gdlog.pending";
+let sheet=null; try{sheet=JSON.parse(localStorage.getItem(CFG_KEY)||"null")}catch(e){}
+let pending=new Set(); try{pending=new Set(JSON.parse(localStorage.getItem(PEND_KEY)||"[]"))}catch(e){}
+let syncMode="local", pushT=null, pushing=false, lastSync=0;
+function savePending(){try{localStorage.setItem(PEND_KEY,JSON.stringify([...pending]))}catch(e){}}
+function setStatus(mode){
+  if(mode)syncMode=mode;
+  const el=$("#status"); if(!el)return;
+  const m={
+    local:["Saved on this phone","status","Connect the Google Sheet in Her details to back up readings"],
+    synced:["Synced to Google Sheet","status cloud",lastSync?("Last synced "+new Date(lastSync).toLocaleTimeString("en-CA",{hour:"numeric",minute:"2-digit"})):""],
+    saving:["Syncing…","status",""],
+    offline:["Offline, will sync later","status","Readings are safe on this phone and will be sent to the sheet when the connection is back"],
+    badkey:["Sheet passcode is wrong","status","Check the passcode in Her details"]
+  }[syncMode];
+  el.textContent=m[0]; el.className=m[1]; el.title=m[2];
+}
+function loadLocal(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s){state.profile=s.profile||{};state.days=s.days||{}}}catch(e){}}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function touch(id){
+  if(id==="profile")state.profile.u=Date.now(); else state.days[id.slice(4)].u=Date.now();
+  saveLocal();
+  if(sheet){pending.add(id);savePending();schedulePush(900)}
+}
+async function api(body,cfg){
+  cfg=cfg||sheet;
+  const res=await fetch(cfg.url,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({key:cfg.key},body))});
+  if(!res.ok)throw {error:"http_"+res.status};
+  const j=await res.json();
+  if(!j.ok)throw j;
+  return j;
+}
+function schedulePush(ms){clearTimeout(pushT);pushT=setTimeout(push,ms)}
+function uOf(id){const o=id==="profile"?state.profile:state.days[id.slice(4)];return (o&&o.u)||0}
+async function push(){
+  if(!sheet||pushing||!pending.size)return;
+  pushing=true; setStatus("saving"); let changed=false;
+  try{
+    for(const id of [...pending]){
+      const sentU=uOf(id);
+      const body=id==="profile"?{action:"saveProfile",profile:state.profile}:{action:"saveDay",date:id.slice(4),day:state.days[id.slice(4)]};
+      const r=await api(body);
+      const srv=id==="profile"?r.profile:r.day;
+      if(srv&&(srv.u||0)>uOf(id)){ if(id==="profile")state.profile=srv; else state.days[id.slice(4)]=srv; changed=true }
+      if(uOf(id)===sentU||changed){pending.delete(id);savePending()}
+    }
+    lastSync=Date.now(); setStatus("synced");
+  }catch(e){ setStatus(e&&e.error==="bad_key"?"badkey":"offline"); if(!(e&&e.error==="bad_key"))schedulePush(20000) }
+  pushing=false;
+  if(changed){saveLocal();safeRender()}
+  if(pending.size&&syncMode==="synced")schedulePush(1500);
+}
+async function pull(){
+  if(!sheet||pushing)return;
+  try{
+    const r=await api({action:"all"});
+    let changed=false;
+    if(r.profile&&(r.profile.u||0)>(state.profile.u||0)&&!pending.has("profile")){state.profile=r.profile;changed=true}
+    else if((state.profile.u||0)>((r.profile&&r.profile.u)||0)){pending.add("profile")}
+    const remote=r.days||{};
+    Object.keys(remote).forEach(date=>{
+      const id="day-"+date, loc=state.days[date];
+      if((!loc||(remote[date].u||0)>(loc.u||0))&&!pending.has(id)){state.days[date]=remote[date];changed=true}
+      else if(loc&&(loc.u||0)>(remote[date].u||0))pending.add(id);
+    });
+    Object.keys(state.days).forEach(date=>{if(!remote[date]&&dayHasData(state.days[date]))pending.add("day-"+date)});
+    savePending(); lastSync=Date.now(); setStatus("synced");
+    if(changed){saveLocal();safeRender()}
+    if(pending.size)schedulePush(300);
+  }catch(e){setStatus(e&&e.error==="bad_key"?"badkey":"offline")}
+}
+let needsRender=false;
+function safeRender(){
+  const a=document.activeElement;
+  if(a&&$("#view").contains(a)&&/^(INPUT|TEXTAREA)$/.test(a.tagName)){needsRender=true;return}
+  render();
+}
+document.addEventListener("focusout",()=>{setTimeout(()=>{if(needsRender){const a=document.activeElement;if(!(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName))){needsRender=false;render()}}},200)});
+window.addEventListener("online",()=>{if(sheet){pull();schedulePush(500)}});
+setInterval(()=>{if(sheet&&!document.hidden)pull()},60000);
+function readSetupHash(){
+  const m=location.hash.match(/setup=([^&]+)/); if(!m)return false;
+  try{const c=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));if(c.url&&c.key){sheet={url:c.url,key:c.key};localStorage.setItem(CFG_KEY,JSON.stringify(sheet))}}catch(e){}
+  try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}
+  return !!sheet;
+}
+function setupLink(){return location.href.split("#")[0]+"#setup="+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(sheet)))))}
+
+/* ---------- toast & clipboard ---------- */
+let toastT;
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2400)}
+async function copy(text,html){
+  try{
+    if(html&&window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
+      await navigator.clipboard.write([new ClipboardItem({"text/plain":new Blob([text],{type:"text/plain"}),"text/html":new Blob([html],{type:"text/html"})})]);return true;
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(text);return true}
+  }catch(e){}
+  try{
+    const ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();
+    const ok=document.execCommand("copy");ta.remove();return ok;
+  }catch(e){return false}
+}
+
+/* ---------- render ---------- */
+function render(){
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===ui.tab)));
+  const n=(state.profile.name||"").trim();
+  $("#who").textContent=n?("Readings for "+n):"Gestational diabetes readings for the Endocrine Pregnancy Clinic";
+  const v=$("#view");
+  if(ui.tab==="today")v.innerHTML=viewToday();
+  else if(ui.tab==="week")v.innerHTML=viewWeek();
+  else if(ui.tab==="report")v.innerHTML=viewReport();
+  else v.innerHTML=viewDetails();
+  if(ui.tab==="today"){SLOTS.forEach(s=>paintSlot(s.key));tick()}
+}
+
+function viewToday(){
+  const d=getDay(ui.date)||blankDay(), isToday=ui.date===todayStr();
+  let h=`<div class="datebar">
+    <button class="icon" data-act="prevDay" aria-label="Previous day">‹</button>
+    <h2>${isToday?"Today, ":""}${esc(fmtLong(ui.date))}</h2>
+    <input type="date" id="datePick" value="${ui.date}" max="${todayStr()}" aria-label="Pick a date">
+    <button class="icon" data-act="nextDay" aria-label="Next day" ${isToday?"disabled":""}>›</button>
+  </div>`;
+  if(!sheet)h+=`<p class="notice">Readings are only on this phone right now. <button class="linkbtn" data-act="tab" data-to="details">Connect the Google Sheet</button> so they’re backed up and shared with your partner’s phone.</p>`;
+  if(!isToday)h+=`<p class="meta" style="margin:-.25rem 0 .75rem">Editing a past day. <button class="linkbtn" data-act="goToday">Back to today</button></p>`;
+  h+=`<div class="slots">`;
+  SLOTS.forEach(s=>{
+    const r=d[s.key]||{};
+    h+=`<article class="slot" data-slot="${s.key}">
+      <div class="slot-head"><h3>${s.label}</h3><span class="badge" id="b-${s.key}"></span></div>
+      <div class="reading-row">
+        <label class="reading"><span class="sr">${s.label} reading in mmol/L</span>
+          <input id="v-${s.key}" data-slot="${s.key}" inputmode="decimal" autocomplete="off" placeholder="–" value="${fmtV(r.v)}"><span class="unit">mmol/L</span></label>
+        ${s.meal?`<div class="seg" role="group" aria-label="When was this checked">
+          <button data-act="kind" data-slot="${s.key}" data-k="1h" aria-pressed="${r.k!=="2h"}">1 hr</button>
+          <button data-act="kind" data-slot="${s.key}" data-k="2h" aria-pressed="${r.k==="2h"}">2 hr</button></div>`:""}
+      </div>
+      <div class="gauge" id="g-${s.key}"><span class="tgt"></span><span class="dot"></span></div>
+      <p class="meta" id="t-${s.key}">${targetText(s.key,r.k)}${s.carbs?`. Carb goal for ${s.meal}: ${s.carbs}.`:". Check as soon as she wakes, before any food."}</p>
+      ${s.meal&&isToday?`<div class="timer" id="tm-${s.key}"></div>`:""}
+    </article>`;
+  });
+  h+=`</div>
+  <details class="extra" ${MEDS.some(([k])=>d[k])||d.notes?"open":""}>
+    <summary>Medication doses and notes</summary>
+    <div class="fields">
+      ${MEDS.map(([k,l])=>`<label class="f"><span>${l} dose</span><input type="text" data-field="${k}" value="${esc(d[k])}" placeholder="None"></label>`).join("")}
+      <label class="f full"><span>Notes</span><textarea data-field="notes" placeholder="Anything the dietitian should know, like a late meal, feeling unwell, or a meal eaten out">${esc(d.notes)}</textarea></label>
+    </div>
+  </details>
+  <p class="foot">If a 1-hour check is missed by more than 10 minutes, wait and do a 2-hour check instead, then tap “2 hr”. Two readings under 4 mmol/L that don’t come up with treatment, or anything that worries you, is a reason to call the clinic or seek care rather than wait for Sunday.</p>`;
+  return h;
+}
+
+function paintSlot(key){
+  const d=getDay(ui.date)||blankDay(), r=d[key]||{}, ev=evalReading(key,r);
+  const b=$("#b-"+key); if(b){b.className="badge"+(ev?" "+ev.cls:"");b.textContent=ev?ev.label:""}
+  const g=$("#g-"+key);
+  if(g){
+    const lo=3,hi=12,t=targetFor(key,r.k),pct=v=>Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100));
+    g.style.setProperty("--t",pct(t)+"%");
+    if(r.v!=null){g.classList.add("has");g.style.setProperty("--v",pct(r.v)+"%")}else g.classList.remove("has");
+  }
+  const s=SLOTS.find(x=>x.key===key), t=$("#t-"+key);
+  if(t)t.textContent=targetText(key,r.k)+(s.carbs?`. Carb goal for ${s.meal}: ${s.carbs}.`:". Check as soon as she wakes, before any food.");
+  document.querySelectorAll(`.seg button[data-slot="${key}"]`).forEach(btn=>btn.setAttribute("aria-pressed",String((r.k||"1h")===btn.dataset.k)));
+}
+
+function tick(){
+  if(ui.tab!=="today"||ui.date!==todayStr())return;
+  const d=getDay(ui.date)||blankDay(), now=Date.now();
+  SLOTS.filter(s=>s.meal).forEach(s=>{
+    const el=$("#tm-"+s.key); if(!el)return;
+    const r=d[s.key]||{};
+    if(!r.start){el.innerHTML=`<div class="row"><button class="btn ghost small" data-act="start" data-slot="${s.key}">She started eating ${s.meal}</button></div>`;return}
+    const m=(now-r.start)/60000, one=r.start+3600000, two=r.start+7200000;
+    let msg="",cls="";
+    if(r.v!=null)msg="Reading saved.";
+    else if(m<60){msg=`1-hour check at ${hm(one)}, in ${Math.ceil(60-m)} min.`}
+    else if(m<=70){msg=`Check now. The 1-hour window closes at ${hm(one+600000)}.`;cls="now"}
+    else if(m<120){msg=`1-hour window passed. Do a 2-hour check at ${hm(two)}, in ${Math.ceil(120-m)} min.`}
+    else if(m<=135){msg="Check now for the 2-hour reading.";cls="now"}
+    else msg="Timer finished.";
+    const st=new Date(r.start);
+    el.innerHTML=`<p class="msg ${cls}">${msg}</p><div class="row">
+      <label class="meta">Started eating at <input type="time" data-act="startTime" data-slot="${s.key}" value="${pad(st.getHours())}:${pad(st.getMinutes())}"></label>
+      <button class="linkbtn" data-act="clearStart" data-slot="${s.key}">Clear timer</button></div>`;
+  });
+}
+setInterval(tick,20000);
+
+function weekStats(sun){
+  let n=0,high=0,low=0;
+  weekDates(sun).forEach(date=>{const d=getDay(date);if(!d)return;SLOTS.forEach(s=>{const e=evalReading(s.key,d[s.key]);if(e){n++;if(e.cls==="high")high++;if(e.cls==="low")low++}})});
+  return {n,high,low};
+}
+function weekTitle(sun){const mon=addDays(sun,-6);return fmt(mon,{month:"short",day:"numeric"})+" to "+fmt(sun,{month:"short",day:"numeric"})}
+function weekNav(){
+  const atLatest=ui.weekEnd>=sundayOf(todayStr());
+  return `<div class="week-nav"><button class="icon" data-act="prevWeek" aria-label="Previous week">‹</button>
+    <h2>${esc(weekTitle(ui.weekEnd))}</h2>
+    <button class="icon" data-act="nextWeek" aria-label="Next week" ${atLatest?"disabled":""}>›</button></div>`;
+}
+
+function viewWeek(){
+  const st=weekStats(ui.weekEnd);
+  let h=weekNav()+`<p class="summary"><b>${st.n} of 28</b> readings recorded${st.high?`, <b>${st.high}</b> above goal`:""}${st.low?`, <b>${st.low}</b> low`:""}. Tap a day to add or change readings.</p>
+  <div class="grid"><div class="grow head"><span>Day</span>${SLOTS.map(s=>`<span>${s.col}</span>`).join("")}</div>`;
+  weekDates(ui.weekEnd).forEach(date=>{
+    const d=getDay(date), future=date>todayStr();
+    h+=`<button class="grow" data-act="openDay" data-date="${date}" ${future?"disabled style='opacity:.45;cursor:default'":""}>
+      <span class="d">${esc(fmt(date,{weekday:"short"}))}<small>${esc(fmt(date,{month:"short",day:"numeric"}))}</small></span>
+      ${SLOTS.map(s=>{const r=d&&d[s.key],e=evalReading(s.key,r);
+        return e?`<span class="chip ${e.cls}">${fmtV(r.v)}${s.meal&&r.k==="2h"?"<sup>2h</sup>":""}</span>`:`<span class="chip none">–</span>`}).join("")}
+    </button>`;
+  });
+  h+=`</div><p class="legend">Green is on target, red is above goal. Goals: fasting 5.2 or lower, 1 hour after a meal 7.7 or lower, 2 hours after 6.6 or lower.</p>
+  <div class="actions"><button class="btn" data-act="toReport">Prepare this week’s email</button></div>`;
+  return h;
+}
+
+/* ---------- report ---------- */
+function medsText(){const m=(state.profile.meds||"").trim();return m||"None"}
+function buildReport(sun){
+  const p=state.profile, dates=weekDates(sun), mon=dates[0], st=weekStats(sun);
+  const name=(p.name||"").trim()||"[full name]", dob=p.dob?fmtDob(p.dob):"[date of birth]";
+  const medChanged=(p.meds||"").trim()?(p.medsChanged?fmtDob(p.medsChanged):"[date]"):"Not applicable";
+  const anyMedDose=dates.some(dt=>{const d=getDay(dt);return d&&MEDS.some(([k])=>(d[k]||"").trim())});
+  const subject=`Blood sugars for ${name}, DOB ${dob}, week of ${weekTitle(sun)}`;
+  const cell=(s,r)=>{const e=evalReading(s.key,r);if(!e)return "";return fmtV(r.v)+(s.meal&&r.k==="2h"?" (2 hr)":"")+(e.cls==="high"?" high":e.cls==="low"?" low":"")};
+
+  let t=`Hello,\n\nHere are my blood sugar readings for ${fmtFull(mon)} to ${fmtFull(sun)}.\n\n`;
+  t+=`Full name: ${name}\nDate of birth: ${dob}\nDiabetes medications: ${medsText()}\nLast medication change: ${medChanged}\n\n`;
+  t+=`Readings in mmol/L. After-meal checks are 1 hour after starting the meal unless marked 2 hr.\n\n`;
+  dates.forEach(dt=>{
+    const d=getDay(dt);
+    const parts=SLOTS.map(s=>`${s.col} ${cell(s,d&&d[s.key])||"–"}`);
+    t+=`${fmtShort(dt)}: ${d&&SLOTS.some(s=>d[s.key]&&d[s.key].v!=null)?parts.join(", "):"no readings"}\n`;
+    if(d){
+      const md=MEDS.filter(([k])=>(d[k]||"").trim()).map(([k,l])=>`${l.toLowerCase()} ${d[k].trim()}`);
+      if(md.length)t+=`   Medication doses: ${md.join(", ")}\n`;
+      if((d.notes||"").trim())t+=`   Notes: ${d.notes.trim()}\n`;
+    }
+  });
+  t+=`\nThis week: ${st.n} of 28 readings recorded, ${st.high} above goal${st.low?`, ${st.low} low`:""}.\n\nThank you,\n${name}\n`;
+
+  const th=s=>`<th style="border:1px solid #999;padding:4px 6px;background:#f0f0f0;text-align:left">${s}</th>`;
+  const td=(s,hl)=>`<td style="border:1px solid #999;padding:4px 6px;${hl?"color:#B42318;font-weight:bold;":""}">${s}</td>`;
+  let cols=["Date","Before breakfast glucose","1 hour post breakfast glucose"];
+  if(anyMedDose)cols.push("Breakfast medication dose");
+  cols.push("1 hour post lunch glucose"); if(anyMedDose)cols.push("Lunch medication dose");
+  cols.push("1 hour post supper glucose"); if(anyMedDose)cols.push("Supper medication dose","Bedtime medication dose");
+  cols.push("Notes");
+  let rows="";
+  dates.forEach(dt=>{
+    const d=getDay(dt)||{};
+    const g=s=>{const r=d[s.key],e=evalReading(s.key,r);return td(e?esc(fmtV(r.v)+(s.meal&&r.k==="2h"?" (2 hr)":"")):"",e&&e.cls==="high")};
+    let r=td(esc(fmtShort(dt)))+g(SLOTS[0])+g(SLOTS[1]);
+    if(anyMedDose)r+=td(esc(d.mB||""));
+    r+=g(SLOTS[2]); if(anyMedDose)r+=td(esc(d.mL||""));
+    r+=g(SLOTS[3]); if(anyMedDose)r+=td(esc(d.mS||""))+td(esc(d.mBed||""));
+    r+=td(esc(d.notes||""));
+    rows+=`<tr>${r}</tr>`;
+  });
+  const html=`<p>Hello,</p><p>Here are my blood sugar readings for ${esc(fmtFull(mon))} to ${esc(fmtFull(sun))}.</p>
+<p><b>Full name:</b> ${esc(name)}<br><b>Date of birth:</b> ${esc(dob)}<br><b>Diabetes medications:</b> ${esc(medsText())}<br><b>Last medication change:</b> ${esc(medChanged)}</p>
+<p>Readings in mmol/L. After-meal checks are 1 hour after starting the meal unless marked 2 hr. Readings above goal are in red.</p>
+<table style="border-collapse:collapse;font-size:13px"><tr>${cols.map(th).join("")}</tr>${rows}</table>
+<p>This week: ${st.n} of 28 readings recorded, ${st.high} above goal${st.low?`, ${st.low} low`:""}.</p>
+<p>Thank you,<br>${esc(name)}</p>`;
+
+  const q=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;
+  const csvCols=["Date","Before Breakfast Glucose","1 Hour Post Breakfast Glucose","Breakfast Medication Dose","1 Hour Post Lunch Glucose","Lunch Medication Dose","1 Hour Post Supper Glucose","Supper Medication Dose","Bedtime Medication Dose","Notes"];
+  let csv=`${q("Name")},${q(name)}\n${q("Date of birth")},${q(dob)}\n${q("Medications")},${q(medsText())}\n\n`+csvCols.map(q).join(",")+"\n";
+  dates.forEach(dt=>{const d=getDay(dt)||{};const g=s=>{const r=d[s.key];return r&&r.v!=null?fmtV(r.v)+(s.meal&&r.k==="2h"?" (2 hr)":""):""};
+    csv+=[dt,g(SLOTS[0]),g(SLOTS[1]),d.mB,g(SLOTS[2]),d.mL,g(SLOTS[3]),d.mS,d.mBed,d.notes].map(q).join(",")+"\n"});
+  return {subject,text:t,html,csv,missing:!(p.name&&p.dob)||((p.meds||"").trim()&&!p.medsChanged)};
+}
+
+let downloads=null;
+function viewReport(){
+  const R=buildReport(ui.weekEnd), sunTxt=fmtLong(ui.weekEnd);
+  let h=weekNav();
+  if(R.missing)h+=`<p class="notice">Add her full name, date of birth${(state.profile.meds||"").trim()?" and the date her medication last changed":""} so the clinic can match the readings. <button class="linkbtn" data-act="tab" data-to="details">Add details</button></p>`;
+  h+=`<section class="panel">
+    <h3>Send by ${esc(sunTxt)} evening</h3>
+    <div class="kv"><span class="k">To</span><span class="v">${CLINIC_EMAIL}</span><button class="btn ghost small" data-act="copyTo">Copy</button></div>
+    <div class="kv"><span class="k">Subject</span><span class="v">${esc(R.subject)}</span><button class="btn ghost small" data-act="copySubject">Copy</button></div>
+    <div class="actions">
+      <button class="btn" data-act="copyMsg">Copy email</button>
+      <button class="btn ghost" data-act="mailto">Open in email app</button>
+      <button class="btn ghost" data-act="csv">Download spreadsheet</button>
+    </div>
+    <ol class="steps">
+      <li>Tap “Copy email”, then paste it into a new email to the clinic address. Most email apps keep the table.</li>
+      <li>Or use “Open in email app”, which fills in the address, subject and a plain-text version.</li>
+      <li>Send it every Sunday evening until the baby arrives.</li>
+    </ol>
+  </section>
+  <section class="panel"><h3>Preview</h3><div class="preview">${R.html}</div></section>`;
+  return h;
+}
+
+function viewDetails(){
+  const p=state.profile;
+  return `<section class="panel" style="margin-top:1rem">
+    <h3>What the clinic asks for in every email</h3>
+    <p class="meta">Full name, date of birth, and the name and dose of any diabetes medication with the date it last changed.</p>
+    <div class="fields">
+      <label class="f full"><span>Full name</span><input type="text" data-pf="name" value="${esc(p.name)}" autocomplete="off"></label>
+      <label class="f"><span>Date of birth</span><input type="date" data-pf="dob" value="${esc(p.dob)}"></label>
+      <label class="f"><span>Medication last changed</span><input type="date" data-pf="medsChanged" value="${esc(p.medsChanged)}"></label>
+      <label class="f full"><span>Diabetes medications and doses</span><input type="text" data-pf="meds" value="${esc(p.meds)}" placeholder="Leave empty if none, for example: Insulin NPH 8 units at bedtime"></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h3>Google Sheet</h3>
+    ${sheet?`<p class="meta">Connected. Every reading is saved to the sheet within a few seconds, and readings added on the other phone show up here within a minute.</p>
+      <div class="actions">
+        <button class="btn" data-act="syncNow">Sync now</button>
+        <button class="btn ghost" data-act="copySetup">Copy setup link for the other phone</button>
+        <button class="linkbtn" data-act="disconnect">Disconnect this phone</button>
+      </div>
+      <p class="meta">The setup link includes the passcode. Send it only to each other.</p>`
+    :`<p class="meta">Paste the web app address and passcode from the Apps Script setup. You only do this once per phone.</p>
+      <div class="fields">
+        <label class="f full"><span>Web app address</span><input type="text" id="cfgUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off"></label>
+        <label class="f full"><span>Passcode</span><input type="text" id="cfgKey" autocomplete="off" autocapitalize="off"></label>
+      </div>
+      <div class="actions"><button class="btn" data-act="connect">Connect</button></div>`}
+  </section>
+  <section class="panel">
+    <h3>Backup</h3>
+    <p class="meta">${sheet?"The Google Sheet is your backup. A file backup is still handy to keep once in a while.":"Readings are saved on this phone, in this browser. Download a backup now and then, and don’t clear the browser’s website data, or the readings will be lost."}</p>
+    <div class="actions">
+      <button class="btn ghost" data-act="backup">Download backup</button>
+      <label class="btn ghost" style="display:inline-flex;align-items:center">Restore from backup<input type="file" accept="application/json,.json" id="restore" class="sr"></label>
+    </div>
+  </section>
+  <p class="foot">Goals from the clinic’s welcome package: before breakfast 5.2 or lower, 1 hour after meals 7.7 or lower, 2 hours after meals 6.6 or lower. Clinic phone 519 646-6000 ext. 64426, Monday to Friday 8 am to 4 pm.</p>`;
+}
+
+/* ---------- events ---------- */
+const saveTimers={};
+document.addEventListener("click",async e=>{
+  const tab=e.target.closest("nav.tabs button");
+  if(tab){ui.tab=tab.dataset.tab;render();window.scrollTo(0,0);return}
+  const b=e.target.closest("[data-act]"); if(!b||b.tagName==="INPUT")return;
+  const a=b.dataset.act, key=b.dataset.slot;
+  if(a==="prevDay"){ui.date=addDays(ui.date,-1);render()}
+  else if(a==="nextDay"){if(ui.date<todayStr()){ui.date=addDays(ui.date,1);render()}}
+  else if(a==="goToday"){ui.date=todayStr();render()}
+  else if(a==="kind"){const d=ensureDay(ui.date);d[key].k=b.dataset.k;touch("day-"+ui.date);paintSlot(key)}
+  else if(a==="start"){const d=ensureDay(ui.date);d[key].start=Date.now();touch("day-"+ui.date);tick()}
+  else if(a==="clearStart"){const d=ensureDay(ui.date);d[key].start=null;touch("day-"+ui.date);tick()}
+  else if(a==="prevWeek"){ui.weekEnd=addDays(ui.weekEnd,-7);render()}
+  else if(a==="nextWeek"){if(ui.weekEnd<sundayOf(todayStr())){ui.weekEnd=addDays(ui.weekEnd,7);render()}}
+  else if(a==="openDay"){if(b.dataset.date<=todayStr()){ui.date=b.dataset.date;ui.tab="today";render();window.scrollTo(0,0)}}
+  else if(a==="toReport"||a==="tab"){ui.tab=b.dataset.to||"report";render();window.scrollTo(0,0)}
+  else if(a==="connect"){
+    const url=($("#cfgUrl").value||"").trim(), key=($("#cfgKey").value||"").trim();
+    if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){toast("That doesn’t look like an Apps Script web app address.");return}
+    if(!key){toast("Enter the passcode.");return}
+    b.disabled=true; b.textContent="Connecting…";
+    try{await api({action:"all"},{url,key});sheet={url,key};localStorage.setItem(CFG_KEY,JSON.stringify(sheet));toast("Connected to the Google Sheet");await pull();render()}
+    catch(err){b.disabled=false;b.textContent="Connect";toast(err&&err.error==="bad_key"?"The passcode doesn’t match the script.":"Couldn’t reach the sheet. Check the address and that access is set to Anyone.")}
+  }
+  else if(a==="syncNow"){await pull();await push();toast(syncMode==="synced"?"Up to date":"Couldn’t reach the sheet")}
+  else if(a==="copySetup"){toast(await copy(setupLink())?"Setup link copied":"Copy didn’t work.")}
+  else if(a==="disconnect"){sheet=null;localStorage.removeItem(CFG_KEY);pending.clear();savePending();setStatus("local");render()}
+  else if(a==="copyTo"){toast(await copy(CLINIC_EMAIL)?"Address copied":"Copy didn’t work. Select the text instead.")}
+  else if(a==="copySubject"){toast(await copy(buildReport(ui.weekEnd).subject)?"Subject copied":"Copy didn’t work. Select the text instead.")}
+  else if(a==="copyMsg"){const R=buildReport(ui.weekEnd);toast(await copy(R.text,R.html)?"Email copied, ready to paste":"Copy didn’t work. Select the preview instead.")}
+  else if(a==="mailto"){
+    const R=buildReport(ui.weekEnd);
+    const url=`mailto:${CLINIC_EMAIL}?subject=${encodeURIComponent(R.subject)}&body=${encodeURIComponent(R.text)}`;
+    if(window.top===window.self){window.location.href=url;return}
+    let w=null; try{w=window.open(url,"_blank")}catch(err){}
+    if(!w){try{window.top.location.href=url}catch(err){toast("Your browser blocked this. Use “Copy email” instead.")}}
+  }
+  else if((a==="csv"||a==="backup")&&!downloads){
+    const isCsv=a==="csv", data=isCsv?buildReport(ui.weekEnd).csv:JSON.stringify(state,null,1);
+    const blob=new Blob([data],{type:isCsv?"text/csv":"application/json"}), url=URL.createObjectURL(blob), link=document.createElement("a");
+    link.href=url; link.download=isCsv?`blood-sugars-week-ending-${ui.weekEnd}.csv`:`blood-sugar-backup-${todayStr()}.json`;
+    document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+  }
+  else if(a==="csv"&&downloads){
+    const R=buildReport(ui.weekEnd);
+    try{await downloads.save({filename:`blood-sugars-week-ending-${ui.weekEnd}.csv`,data:R.csv});}catch(err){if(err&&err.code!=="declined")toast("Download didn’t work.")}
+  }
+  else if(a==="backup"&&downloads){
+    try{await downloads.save({filename:`blood-sugar-backup-${todayStr()}.json`,data:JSON.stringify(state,null,1)});}catch(err){if(err&&err.code!=="declined")toast("Download didn’t work.")}
+  }
+});
+
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.matches(".reading input")){
+    const key=t.dataset.slot, d=ensureDay(ui.date), r=d[key];
+    r.v=parseNum(t.value);
+    if(key!=="fast"&&r.v!=null&&r.start&&ui.date===todayStr()&&(Date.now()-r.start)/60000>70&&r.k!=="2h")r.k="2h";
+    paintSlot(key);
+    clearTimeout(saveTimers[key]);saveTimers[key]=setTimeout(()=>{touch("day-"+ui.date);tick()},350);
+  } else if(t.dataset.field){
+    const d=ensureDay(ui.date);d[t.dataset.field]=t.value;
+    clearTimeout(saveTimers.f);saveTimers.f=setTimeout(()=>touch("day-"+ui.date),500);
+  } else if(t.dataset.pf){
+    state.profile[t.dataset.pf]=t.value;
+    clearTimeout(saveTimers.p);saveTimers.p=setTimeout(()=>{touch("profile");const n=(state.profile.name||"").trim();$("#who").textContent=n?("Readings for "+n):"Gestational diabetes readings for the Endocrine Pregnancy Clinic"},500);
+  }
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="datePick"&&t.value){ui.date=t.value>todayStr()?todayStr():t.value;render()}
+  else if(t.dataset.act==="startTime"&&t.value){
+    const [H,M]=t.value.split(":").map(Number), dt=fromStr(ui.date);dt.setHours(H,M,0,0);
+    const d=ensureDay(ui.date);d[t.dataset.slot].start=dt.getTime();touch("day-"+ui.date);tick();
+  }
+  else if(t.id==="restore"&&t.files&&t.files[0]){
+    const fr=new FileReader();
+    fr.onload=()=>{try{const s=JSON.parse(fr.result);if(!s||typeof s.days!=="object")throw 0;
+      state.profile={...(s.profile||{})};Object.keys(s.days).forEach(k=>{state.days[k]=s.days[k]});
+      touch("profile");Object.keys(s.days).forEach(k=>touch("day-"+k));render();toast("Backup restored")}catch(err){toast("That file isn’t a backup from this log.")}};
+    fr.readAsText(t.files[0]);
+  }
+});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){const t=todayStr();if(ui.date>t)ui.date=t;tick();if(sheet)pull()}});
+
+/* ---------- start ---------- */
+const fromLink=readSetupHash();
+loadLocal(); setStatus(sheet?"saving":"local"); render();
+if(sheet){pull();if(fromLink)toast("This phone is now connected to the Google Sheet")}
+})();
+</script>
+</body>
+</html>
