@@ -475,12 +475,12 @@ function buildReport(sun){
     r+=td(esc(d.notes||""));
     rows+=`<tr>${r}</tr>`;
   });
-  const html=`<p>Hello,</p><p>Here are my blood sugar readings for ${esc(fmtFull(mon))} to ${esc(fmtFull(sun))}.</p>
-<p><b>Full name:</b> ${esc(name)}<br><b>Date of birth:</b> ${esc(dob)}<br><b>Diabetes medications:</b> ${esc(medsText())}<br><b>Last medication change:</b> ${esc(medChanged)}</p>
-<p>Readings in mmol/L. After-meal checks are 1 hour after starting the meal unless marked 2 hr. Readings above goal are in red.</p>
-<table style="border-collapse:collapse;font-size:13px"><tr>${cols.map(th).join("")}</tr>${rows}</table>
-<p>This week: ${st.n} of 28 readings recorded, ${st.high} above goal${st.low?`, ${st.low} low`:""}.</p>
-<p>Thank you,<br>${esc(name)}</p>`;
+  const html=`<div style="color:#000000;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;padding:4px"><p style="margin:0 0 12px;color:#000000">Hello,</p><p style="margin:0 0 12px;color:#000000">Here are my blood sugar readings for ${esc(fmtFull(mon))} to ${esc(fmtFull(sun))}.</p>
+<p style="margin:0 0 12px;color:#000000"><b style="color:#000000">Full name:</b> ${esc(name)}<br><b style="color:#000000">Date of birth:</b> ${esc(dob)}<br><b style="color:#000000">Diabetes medications:</b> ${esc(medsText())}<br><b style="color:#000000">Last medication change:</b> ${esc(medChanged)}</p>
+<p style="margin:0 0 12px;color:#000000">Readings in mmol/L. After-meal checks are 1 hour after starting the meal unless marked 2 hr. Readings above goal are in red.</p>
+<table style="border-collapse:collapse;font-size:13px;color:#000000;background-color:#ffffff;margin:0 0 12px"><tr>${cols.map(th).join("")}</tr>${rows}</table>
+<p style="margin:0 0 12px;color:#000000">This week: ${st.n} of 28 readings recorded, ${st.high} above goal${st.low?`, ${st.low} low`:""}.</p>
+<p style="margin:0 0 12px;color:#000000">Thank you,<br>${esc(name)}</p></div>`;
 
   const q=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;
   const csvCols=["Date","Before Breakfast Glucose","1 Hour Post Breakfast Glucose","Breakfast Medication Dose","1 Hour Post Lunch Glucose","Lunch Medication Dose","1 Hour Post Supper Glucose","Supper Medication Dose","Bedtime Medication Dose","Notes"];
